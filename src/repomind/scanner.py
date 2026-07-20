@@ -47,7 +47,7 @@ def _detect_python(root: Path, facts: ProjectFacts) -> None:
     if pyproject.exists():
         facts.stacks.append("Python (pyproject)")
         try:
-            import tomllib
+            from ._compat import tomllib
             data = tomllib.loads(pyproject.read_text(encoding="utf-8", errors="replace"))
             scripts = data.get("project", {}).get("scripts", {})
             for name in scripts:

@@ -50,7 +50,7 @@ def load_llm_config(root: str | Path) -> LLMConfig:
         raise LLMNotConfigured(
             f"Config not found: {cfg_path}. Run `repomind init` first."
         )
-    import tomllib
+    from ._compat import tomllib
 
     data = tomllib.loads(cfg_path.read_text(encoding="utf-8", errors="replace"))
     llm = data.get("llm") or {}
