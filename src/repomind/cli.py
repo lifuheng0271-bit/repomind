@@ -107,5 +107,30 @@ def ask(
     typer.echo(answer)
 
 
+@app.command()
+def doctor(
+    path: Path = typer.Argument(Path("."), help="Project root."),
+    no_ping: bool = typer.Option(False, "--no-ping", help="Skip live LLM connectivity test."),
+):
+    """Diagnose config, environment, and LLM connectivity."""
+    from .doctor import run_doctor
+
+    results = run_doctor(path, skip_llm_ping=no_ping)
+    failed = 0
+    for r in results:
+        if not r.ok:
+            mark, color = "✗", typer.colors.RED
+            failed += 1
+        elif r.warn:
+            mark, color = "!", typer.colors.YELLOW
+        else:
+            mark, color = "✓", typer.colors.GREEN
+        typer.secho(f" {mark} {r.name:<24} {r.detail}", fg=color)
+    if failed:
+        typer.secho(f"\n{failed} check(s) failed.", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+    typer.secho("\nAll checks passed.", fg=typer.colors.GREEN)
+
+
 if __name__ == "__main__":
     app()
