@@ -1,5 +1,7 @@
 # RepoMind
 
+[![CI](https://github.com/lifuheng0271-bit/repomind/actions/workflows/ci.yml/badge.svg)](https://github.com/lifuheng0271-bit/repomind/actions/workflows/ci.yml)
+
 > Repo memory & `AGENTS.md` maintainer CLI for AI coding agents. Linux-first, local-first, LLM-optional.
 
 **RepoMind 是什么？** 一个本地 CLI 工具：自动理解你的代码库，生成并维护 `AGENTS.md` / `PROJECT_MEMORY.md`，让 Codex、Claude Code、Cursor、Aider 等 AI 编程助手每次进入项目时都有稳定、最新的上下文。
