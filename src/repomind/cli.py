@@ -19,6 +19,7 @@ DEFAULT_CONFIG = """\
 enabled = false
 # endpoint = "http://localhost:11434/v1"   # Ollama / OpenAI-compatible
 # model = "qwen3"
+# api_format = "chat"                      # "chat" (default) or "completions"
 # api_key_env = "REPOMIND_API_KEY"
 
 [scan]

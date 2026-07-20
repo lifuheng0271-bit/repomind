@@ -48,6 +48,75 @@ def test_chat_url_no_double_suffix():
     assert cfg.chat_url == "http://x/v1/chat/completions"
 
 
+def test_completions_url_variants():
+    assert LLMConfig(endpoint="http://x/v1", model="m").completions_url == "http://x/v1/completions"
+    assert LLMConfig(endpoint="http://x/v1/completions", model="m").completions_url == "http://x/v1/completions"
+    # chat endpoint given but completions format requested -> strip chat suffix
+    assert LLMConfig(endpoint="http://x/v1/chat/completions", model="m").completions_url == "http://x/v1/completions"
+
+
+def test_load_llm_config_api_format(tmp_path):
+    root = tmp_path / "p"
+    (root / ".repomind").mkdir(parents=True)
+    (root / ".repomind" / "config.toml").write_text(
+        '[llm]\nenabled = true\nendpoint = "http://x/v1"\nmodel = "m"\napi_format = "completions"\n',
+        encoding="utf-8",
+    )
+    cfg = load_llm_config(root)
+    assert cfg.api_format == "completions"
+
+
+def test_load_llm_config_bad_api_format(tmp_path):
+    root = tmp_path / "p"
+    (root / ".repomind").mkdir(parents=True)
+    (root / ".repomind" / "config.toml").write_text(
+        '[llm]\nenabled = true\nendpoint = "http://x/v1"\nmodel = "m"\napi_format = "grpc"\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(LLMNotConfigured):
+        load_llm_config(root)
+
+
+def test_chat_completions_format_payload(monkeypatch):
+    """completions format flattens system+user into a prompt and parses choices[0].text."""
+    from repomind import llm as llm_mod
+
+    captured = {}
+
+    def fake_post(url, payload, api_key, timeout):
+        captured["url"] = url
+        captured["payload"] = payload
+        return {"choices": [{"text": "  flat answer  "}]}
+
+    monkeypatch.setattr(llm_mod, "_post_json", fake_post)
+    cfg = LLMConfig(endpoint="http://x/v1", model="m", api_format="completions")
+    out = llm_mod.chat(cfg, "SYS", "USER")
+    assert out == "flat answer"
+    assert captured["url"] == "http://x/v1/completions"
+    assert "prompt" in captured["payload"]
+    assert "SYS" in captured["payload"]["prompt"]
+    assert "USER" in captured["payload"]["prompt"]
+    assert "messages" not in captured["payload"]
+
+
+def test_chat_chat_format_payload(monkeypatch):
+    from repomind import llm as llm_mod
+
+    captured = {}
+
+    def fake_post(url, payload, api_key, timeout):
+        captured["url"] = url
+        captured["payload"] = payload
+        return {"choices": [{"message": {"content": "chat answer"}}]}
+
+    monkeypatch.setattr(llm_mod, "_post_json", fake_post)
+    cfg = LLMConfig(endpoint="http://x/v1", model="m", api_format="chat")
+    out = llm_mod.chat(cfg, "SYS", "USER")
+    assert out == "chat answer"
+    assert captured["url"] == "http://x/v1/chat/completions"
+    assert captured["payload"]["messages"][0]["role"] == "system"
+
+
 def test_build_context_includes_facts_and_readme(tmp_path):
     root = make_project(tmp_path)
     ctx = build_context(root)

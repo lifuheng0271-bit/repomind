@@ -24,6 +24,7 @@ class LLMConfig:
     model: str
     api_key: str = ""
     timeout: int = 120
+    api_format: str = "chat"  # "chat" -> /chat/completions, "completions" -> /completions
 
     @property
     def chat_url(self) -> str:
@@ -31,6 +32,15 @@ class LLMConfig:
         if base.endswith("/chat/completions"):
             return base
         return base + "/chat/completions"
+
+    @property
+    def completions_url(self) -> str:
+        base = self.endpoint.rstrip("/")
+        if base.endswith("/chat/completions"):
+            base = base[: -len("/chat/completions")]
+        if base.endswith("/completions"):
+            return base
+        return base + "/completions"
 
 
 def load_llm_config(root: str | Path) -> LLMConfig:
@@ -63,16 +73,71 @@ def load_llm_config(root: str | Path) -> LLMConfig:
     key_env = llm.get("api_key_env", "")
     if key_env:
         api_key = os.environ.get(key_env, "")
+    api_format = str(llm.get("api_format", "chat")).lower()
+    if api_format not in ("chat", "completions"):
+        raise LLMNotConfigured(
+            f"Invalid api_format: {api_format!r}. Use \"chat\" or \"completions\"."
+        )
     return LLMConfig(
         endpoint=endpoint,
         model=model,
         api_key=api_key,
         timeout=int(llm.get("timeout", 120)),
+        api_format=api_format,
     )
 
 
+def _post_json(url: str, payload: dict, api_key: str, timeout: int) -> dict:
+    """POST JSON, return parsed JSON response body."""
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers=headers,
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode("utf-8", errors="replace"))
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", errors="replace")[:300]
+        raise LLMRequestError(f"HTTP {e.code} from {url}: {detail}") from e
+    except urllib.error.URLError as e:
+        raise LLMRequestError(
+            f"Cannot reach {url}: {e.reason}. "
+            "Is Ollama / the API server running?"
+        ) from e
+
+
+COMPLETIONS_PROMPT_TEMPLATE = """\
+{system}
+
+{user}
+
+Answer:"""
+
+
 def chat(config: LLMConfig, system: str, user: str) -> str:
-    """Single-turn chat completion. Returns assistant text."""
+    """Single-turn completion. Dispatches on config.api_format.
+
+    - "chat":        POST /chat/completions with messages array
+    - "completions": POST /completions with a single flattened prompt
+    """
+    if config.api_format == "completions":
+        payload = {
+            "model": config.model,
+            "prompt": COMPLETIONS_PROMPT_TEMPLATE.format(system=system, user=user),
+            "stream": False,
+            "max_tokens": 2048,
+        }
+        body = _post_json(config.completions_url, payload, config.api_key, config.timeout)
+        try:
+            return body["choices"][0]["text"].strip()
+        except (KeyError, IndexError, TypeError) as e:
+            raise LLMRequestError(f"Unexpected response shape: {str(body)[:300]}") from e
+
     payload = {
         "model": config.model,
         "messages": [
@@ -81,26 +146,7 @@ def chat(config: LLMConfig, system: str, user: str) -> str:
         ],
         "stream": False,
     }
-    headers = {"Content-Type": "application/json"}
-    if config.api_key:
-        headers["Authorization"] = f"Bearer {config.api_key}"
-    req = urllib.request.Request(
-        config.chat_url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers=headers,
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=config.timeout) as resp:
-            body = json.loads(resp.read().decode("utf-8", errors="replace"))
-    except urllib.error.HTTPError as e:
-        detail = e.read().decode("utf-8", errors="replace")[:300]
-        raise LLMRequestError(f"HTTP {e.code} from {config.chat_url}: {detail}") from e
-    except urllib.error.URLError as e:
-        raise LLMRequestError(
-            f"Cannot reach {config.chat_url}: {e.reason}. "
-            "Is Ollama / the API server running?"
-        ) from e
+    body = _post_json(config.chat_url, payload, config.api_key, config.timeout)
     try:
         return body["choices"][0]["message"]["content"].strip()
     except (KeyError, IndexError, TypeError) as e:
