@@ -1,0 +1,57 @@
+# RepoMind
+
+> Repo memory & `AGENTS.md` maintainer CLI for AI coding agents. Linux-first, local-first, LLM-optional.
+
+**RepoMind 是什么？** 一个本地 CLI 工具：自动理解你的代码库，生成并维护 `AGENTS.md` / `PROJECT_MEMORY.md`，让 Codex、Claude Code、Cursor、Aider 等 AI 编程助手每次进入项目时都有稳定、最新的上下文。
+
+## 为什么
+
+2026 年 AI Agent 的共同瓶颈是项目上下文：每个 Agent 每次都要重新理解项目结构、启动方式与历史决策。RepoMind 把这层"项目记忆"做成独立的轻量工具。
+
+## 安装
+
+```bash
+pip install -e .
+```
+
+## 使用
+
+```bash
+cd your-project/
+repomind init      # 初始化 .repomind/
+repomind scan      # 扫描项目，保存快照
+repomind update    # 生成/更新 AGENTS.md 与 PROJECT_MEMORY.md
+```
+
+生成的文件：
+
+```text
+AGENTS.md            # AI 助手入口文档：技术栈、启动命令、目录结构
+PROJECT_MEMORY.md    # 每次扫描的变更历史（最新在前）
+.repomind/
+  config.toml        # 配置（LLM 可选）
+  snapshots/         # 扫描快照 JSON
+```
+
+## 特性
+
+- ✅ 无需 LLM 即可工作（纯模板模式）
+- ✅ 支持 Python / Node.js / Rust / Go 技术栈识别
+- ✅ 快照 diff：知道两次扫描之间改了什么
+- ✅ 原子写入，不会写坏文件
+- 🔜 v0.2: `repomind ask`（LLM 项目问答）、`repomind doctor`
+
+## 开发
+
+```bash
+pip install -e ".[dev]"
+pytest
+```
+
+## 设计文档
+
+见 [docs/specs/2026-07-20-repomind-design.md](docs/specs/2026-07-20-repomind-design.md)。
+
+## License
+
+MIT
