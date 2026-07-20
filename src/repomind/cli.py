@@ -132,5 +132,19 @@ def doctor(
     typer.secho("\nAll checks passed.", fg=typer.colors.GREEN)
 
 
+@app.command()
+def ui(path: Path = typer.Argument(Path("."), help="Project root.")):
+    """Open the interactive TUI (requires: pip install repomind[ui])."""
+    try:
+        from .tui import run_ui
+    except ModuleNotFoundError:
+        typer.secho(
+            "TUI requires textual. Install with: pip install 'repomind[ui]'",
+            fg=typer.colors.YELLOW,
+        )
+        raise typer.Exit(code=1)
+    run_ui(path)
+
+
 if __name__ == "__main__":
     app()

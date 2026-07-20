@@ -25,7 +25,19 @@ repomind scan      # 扫描项目，保存快照
 repomind update    # 生成/更新 AGENTS.md 与 PROJECT_MEMORY.md
 repomind ask "这个项目怎么运行？"   # LLM 项目问答（需在配置中启用）
 repomind doctor                       # 体检：配置/依赖/LLM 连通性
+repomind ui                           # 交互式 TUI（需 pip install 'repomind[ui]'）
 ```
+
+### TUI 交互界面
+
+`repomind ui` 在终端里打开四个面板：
+
+- **概览**：技术栈、语言分布、命令、目录结构
+- **快照**：历史扫描列表 + 相邻快照 diff
+- **Doctor**：环境体检结果
+- **Chat**：与项目对话（需启用 LLM）
+
+快捷键：`r` 重新扫描 · `q` 退出
 
 ### 启用 LLM 问答（可选）
 
@@ -65,7 +77,8 @@ PROJECT_MEMORY.md    # 每次扫描的变更历史（最新在前）
 - ✅ 原子写入，不会写坏文件
 - ✅ `repomind ask`：LLM 项目问答（Ollama / OpenAI-compatible，零依赖 urllib 实现）
 - ✅ `repomind doctor`：环境/配置/LLM 连通性体检（`--no-ping` 跳过在线测试）
-- 🔜 v0.4: ARCHITECTURE.md 生成（LLM 增强）、PyPI 发布
+- ✅ `repomind ui`：textual TUI（概览/快照diff/Doctor/Chat 四面板）
+- 🔜 v0.5: ARCHITECTURE.md 生成（LLM 增强）、PyPI 发布
 
 ## 开发
 
