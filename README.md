@@ -21,7 +21,22 @@ cd your-project/
 repomind init      # 初始化 .repomind/
 repomind scan      # 扫描项目，保存快照
 repomind update    # 生成/更新 AGENTS.md 与 PROJECT_MEMORY.md
+repomind ask "这个项目怎么运行？"   # LLM 项目问答（需在配置中启用）
 ```
+
+### 启用 LLM 问答（可选）
+
+编辑 `.repomind/config.toml`：
+
+```toml
+[llm]
+enabled = true
+endpoint = "http://localhost:11434/v1"   # Ollama 或任意 OpenAI-compatible API
+model = "qwen3"
+api_key_env = "REPOMIND_API_KEY"         # 可选：从该环境变量读 key
+```
+
+本地 Ollama 无需 key；云端 API 则 `export REPOMIND_API_KEY=...`。
 
 生成的文件：
 
@@ -39,7 +54,8 @@ PROJECT_MEMORY.md    # 每次扫描的变更历史（最新在前）
 - ✅ 支持 Python / Node.js / Rust / Go 技术栈识别
 - ✅ 快照 diff：知道两次扫描之间改了什么
 - ✅ 原子写入，不会写坏文件
-- 🔜 v0.2: `repomind ask`（LLM 项目问答）、`repomind doctor`
+- ✅ `repomind ask`：LLM 项目问答（Ollama / OpenAI-compatible，零依赖 urllib 实现）
+- 🔜 v0.3: `repomind doctor`、ARCHITECTURE.md 生成
 
 ## 开发
 

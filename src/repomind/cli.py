@@ -84,5 +84,27 @@ def update(path: Path = typer.Argument(Path("."), help="Project root.")):
         typer.echo("No structural changes since last scan (or first scan).")
 
 
+@app.command()
+def ask(
+    question: str = typer.Argument(..., help="Question about this project."),
+    path: Path = typer.Option(Path("."), "--path", "-p", help="Project root."),
+):
+    """Ask a question about the project (requires LLM enabled in config)."""
+    from .ask import ask_question
+    from .llm import LLMNotConfigured, LLMRequestError, load_llm_config
+
+    try:
+        config = load_llm_config(path)
+    except LLMNotConfigured as e:
+        typer.secho(str(e), fg=typer.colors.YELLOW)
+        raise typer.Exit(code=1)
+    try:
+        answer = ask_question(path, question, config)
+    except LLMRequestError as e:
+        typer.secho(f"LLM request failed: {e}", fg=typer.colors.RED)
+        raise typer.Exit(code=2)
+    typer.echo(answer)
+
+
 if __name__ == "__main__":
     app()
